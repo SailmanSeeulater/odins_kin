@@ -1,0 +1,72 @@
+{
+  "session": {
+    "start": "2026-05-23T08:30:37.944822+00:00",
+    "end": "2026-05-23T08:30:51.655512+00:00",
+    "total_events": 7
+  },
+  "time_per_app_seconds": {
+    "python.exe": 4.64,
+    "claude.exe": 3.03,
+    "Unknown": 3.02,
+    "explorer.exe": 1.51,
+    "msedge.exe": 1.51
+  },
+  "events": [
+    {
+      "start_time": "2026-05-23T08:30:37.944822+00:00",
+      "end_time": "2026-05-23T08:30:40.958001+00:00",
+      "duration_seconds": 3.01,
+      "window_title": "Activity Tracker",
+      "process_name": "python.exe",
+      "exe_path": "C:\\Python\\python.exe"
+    },
+    {
+      "start_time": "2026-05-23T08:30:40.958001+00:00",
+      "end_time": "2026-05-23T08:30:43.985885+00:00",
+      "duration_seconds": 3.03,
+      "window_title": "Claude",
+      "process_name": "claude.exe",
+      "exe_path": "C:\\Program Files\\WindowsApps\\Claude_1.8555.0.0_x64__pzs8sxrjxfjjc\\app\\claude.exe"
+    },
+    {
+      "start_time": "2026-05-23T08:30:43.985885+00:00",
+      "end_time": "2026-05-23T08:30:45.491959+00:00",
+      "duration_seconds": 1.51,
+      "window_title": "",
+      "process_name": "Unknown",
+      "exe_path": ""
+    },
+    {
+      "start_time": "2026-05-23T08:30:45.491959+00:00",
+      "end_time": "2026-05-23T08:30:47.006452+00:00",
+      "duration_seconds": 1.51,
+      "window_title": "File Explorer",
+      "process_name": "explorer.exe",
+      "exe_path": "C:\\Windows\\explorer.exe"
+    },
+    {
+      "start_time": "2026-05-23T08:30:47.006452+00:00",
+      "end_time": "2026-05-23T08:30:48.514274+00:00",
+      "duration_seconds": 1.51,
+      "window_title": "(16) ‪@Cynthoni‬ - Lvstlove (Visualizer) - YouTube - Personal - Microsoft​ Edge",
+      "process_name": "msedge.exe",
+      "exe_path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+    },
+    {
+      "start_time": "2026-05-23T08:30:48.514274+00:00",
+      "end_time": "2026-05-23T08:30:50.021995+00:00",
+      "duration_seconds": 1.51,
+      "window_title": "",
+      "process_name": "Unknown",
+      "exe_path": ""
+    },
+    {
+      "start_time": "2026-05-23T08:30:50.021995+00:00",
+      "end_time": "2026-05-23T08:30:51.655512+00:00",
+      "duration_seconds": 1.63,
+      "window_title": "Activity Tracker",
+      "process_name": "python.exe",
+      "exe_path": "C:\\Python\\python.exe"
+    }
+  ]
+}
