@@ -1,6 +1,6 @@
-# Odins Kin - Screen Activiry Tracker
+# Odins Kin - Screen Activity Tracker
 
-A window desktop app that tracks which applications you use and for how long. Record events and where it was focused on, while also stpring them into a local database, and displays session history in a web UI.
+A window desktop app that tracks which applications you use and for how long. Record events and where it was focused on, while also storing them in a local database, and display session history in a web UI.
 
 ## Stack
 
