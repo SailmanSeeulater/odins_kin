@@ -1,0 +1,24 @@
+# Local data (the apps now keep it in %LOCALAPPDATA%\Odins_Kin)
+*.db
+sessions/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# PyInstaller output
+build/
+dist/
+
+# Virtual environment and secrets
+venv/
+.venv/
+.env
+
+# Impeccable scratch (briefs and design records stay tracked)
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/live/
+.impeccable/questions/
+.impeccable/config.local.json

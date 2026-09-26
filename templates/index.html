@@ -3,354 +3,65 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Activity Tracker</title>
-        <style>
-            @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap");
-
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
-            :root {
-                --bg: #0a0a0f;
-                --surface: #12121a;
-                --border: #1e1e2e;
-                --text: #e8e8f0;
-                --muted: #5a5a7a;
-                --accent: #00ff99;
-                --red: #ff4466;
-            }
-
-            body {
-                background: var(--bg);
-                color: var(--text);
-                font-family: "Syne", sans-serif;
-                min-height: 100vh;
-                padding: 48px 24px;
-            }
-
-            header {
-                max-width: 900px;
-                margin: 0 auto 48px;
-                border-bottom: 1px solid var(--border);
-                padding-bottom: 24px;
-            }
-
-            header h1 {
-                font-size: 2.4rem;
-                font-weight: 800;
-                letter-spacing: -1px;
-            }
-
-            header h1 span {
-                color: var(--accent);
-            }
-
-            header p {
-                color: var(--muted);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.8rem;
-                margin-top: 6px;
-            }
-
-            #sessions {
-                max-width: 900px;
-                margin: 0 auto;
-                display: grid;
-                gap: 20px;
-            }
-
-            .card {
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 28px;
-                cursor: pointer;
-                transition:
-                    border-color 0.2s,
-                    transform 0.2s;
-            }
-
-            .card:hover {
-                border-color: var(--accent);
-                transform: translateY(-2px);
-            }
-
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 20px;
-            }
-
-            .session-id {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.75rem;
-                color: var(--accent);
-                background: rgba(0, 255, 153, 0.08);
-                padding: 4px 10px;
-                border-radius: 20px;
-                border: 1px solid rgba(0, 255, 153, 0.2);
-            }
-
-            .session-date {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.75rem;
-                color: var(--muted);
-            }
-
-            .card-meta {
-                display: flex;
-                gap: 24px;
-                margin-bottom: 24px;
-            }
-
-            .meta-item label {
-                display: block;
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.65rem;
-                color: var(--muted);
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                margin-bottom: 4px;
-            }
-
-            .meta-item span {
-                font-size: 1.1rem;
-                font-weight: 700;
-            }
-
-            .app-bars {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .app-row {
-                display: grid;
-                grid-template-columns: 120px 1fr 56px;
-                align-items: center;
-                gap: 12px;
-            }
-
-            .app-name {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.75rem;
-                color: var(--text);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .bar-track {
-                background: var(--border);
-                border-radius: 4px;
-                height: 6px;
-                overflow: hidden;
-            }
-
-            .bar-fill {
-                height: 100%;
-                border-radius: 4px;
-                background: var(--accent);
-                transition: width 0.6s ease;
-            }
-
-            .app-time {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.7rem;
-                color: var(--muted);
-                text-align: right;
-            }
-
-            .events-drawer {
-                display: none;
-                margin-top: 24px;
-                border-top: 1px solid var(--border);
-                padding-top: 20px;
-            }
-
-            .events-drawer.open {
-                display: block;
-            }
-
-            .events-drawer h3 {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.7rem;
-                color: var(--muted);
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                margin-bottom: 12px;
-            }
-
-            .event-row {
-                display: grid;
-                grid-template-columns: 90px 1fr 60px;
-                gap: 12px;
-                padding: 8px 0;
-                border-bottom: 1px solid var(--border);
-                align-items: center;
-            }
-
-            .event-row:last-child {
-                border-bottom: none;
-            }
-
-            .event-proc {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.7rem;
-                color: var(--accent);
-            }
-
-            .event-title {
-                font-size: 0.8rem;
-                color: var(--text);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-
-            .event-dur {
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.7rem;
-                color: var(--muted);
-                text-align: right;
-            }
-
-            .empty {
-                text-align: center;
-                color: var(--muted);
-                font-family: "JetBrains Mono", monospace;
-                font-size: 0.85rem;
-                padding: 80px 0;
-            }
-        </style>
+        <meta name="color-scheme" content="light dark" />
+        <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+        <title>Odin's Kin</title>
+        <link rel="icon" href="{{ url_for('static', filename='mark.svg') }}" type="image/svg+xml" />
+        <link rel="preload" href="{{ url_for('static', filename='fonts/InterVariable.ttf') }}" as="font" type="font/ttf" crossorigin />
+        <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}" />
     </head>
     <body>
-        <header>
-            <h1>Activity <span>Tracker</span></h1>
-            <p>click a session to expand focus events</p>
+        <header class="topbar">
+            <div class="topbar-inner">
+                <a class="brand" href="#" aria-label="Odin's Kin, back to the report">
+                    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="mark-ig" x1="0" y1="1" x2="1" y2="0">
+                                <stop offset="0" stop-color="#FEDA75" />
+                                <stop offset=".25" stop-color="#FA7E1E" />
+                                <stop offset=".5" stop-color="#D62976" />
+                                <stop offset=".75" stop-color="#962FBF" />
+                                <stop offset="1" stop-color="#4F5BD5" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="16" cy="16" r="14.6" fill="none" stroke="url(#mark-ig)" stroke-width="2.8" />
+                        <circle cx="16" cy="16" r="11.4" fill="#111114" />
+                        <path d="M13.8 9.3v13.7M13.8 9.3l6 5.5M13.8 15.1l6 5.5" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" />
+                    </svg>
+                    <span>Odin's Kin</span>
+                </a>
+                <div class="segmented" role="group" aria-label="Report range">
+                    <button type="button" data-view="day" aria-pressed="true">Day</button>
+                    <button type="button" data-view="week" aria-pressed="false">Week</button>
+                    <span class="segmented-thumb" aria-hidden="true"></span>
+                </div>
+            </div>
         </header>
 
-        <div id="sessions"></div>
+        <main class="layout">
+            <section class="report" aria-labelledby="range-title">
+                <div class="title-row">
+                    <h1 id="range-title">Today</h1>
+                    <div class="stepper">
+                        <button type="button" class="icon-button" id="prev" aria-label="Previous day">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" /></svg>
+                        </button>
+                        <button type="button" class="icon-button" id="next" aria-label="Next day">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" /></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="report" aria-live="polite"></div>
+            </section>
 
-        <script>
-            function formatDate(iso) {
-                if (!iso) return "—";
-                return new Date(iso).toLocaleString();
-            }
+            <section class="side" aria-label="Sessions">
+                <div id="side"></div>
+            </section>
+        </main>
 
-            function formatDuration(seconds) {
-                if (!seconds) return "0s";
-                if (seconds < 60) return `${seconds}s`;
-                const m = Math.floor(seconds / 60);
-                const s = Math.round(seconds % 60);
-                return s > 0 ? `${m}m ${s}s` : `${m}m`;
-            }
+        <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
 
-            function totalSeconds(summary) {
-                return Object.values(summary).reduce((a, b) => a + b, 0);
-            }
-
-            function buildCard(session) {
-                const summary = session.summary || {};
-                const total = totalSeconds(summary);
-                const maxVal = Math.max(...Object.values(summary), 1);
-                const date = formatDate(session.start_time);
-                const duration = formatDuration(total);
-
-                const bars = Object.entries(summary)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([app, secs]) => {
-                        const pct = Math.round((secs / maxVal) * 100);
-                        return `
-          <div class="app-row">
-            <div class="app-name">${app}</div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width:${pct}%"></div>
-            </div>
-            <div class="app-time">${formatDuration(secs)}</div>
-          </div>`;
-                    })
-                    .join("");
-
-                const card = document.createElement("div");
-                card.className = "card";
-                card.innerHTML = `
-      <div class="card-header">
-        <div class="session-id">SESSION #${session.id}</div>
-        <div class="session-date">${date}</div>
-      </div>
-      <div class="card-meta">
-        <div class="meta-item">
-          <label>Total Time</label>
-          <span>${duration}</span>
-        </div>
-        <div class="meta-item">
-          <label>Focus Switches</label>
-          <span>${session.total_events}</span>
-        </div>
-        <div class="meta-item">
-          <label>Apps Used</label>
-          <span>${Object.keys(summary).length}</span>
-        </div>
-      </div>
-      <div class="app-bars">${bars}</div>
-      <div class="events-drawer" id="drawer-${session.id}">
-        <h3>Focus Events</h3>
-        <div class="events-list">Loading...</div>
-      </div>`;
-
-                // Click to expand events
-                card.addEventListener("click", async () => {
-                    const drawer = document.getElementById(
-                        `drawer-${session.id}`,
-                    );
-                    const isOpen = drawer.classList.contains("open");
-
-                    // Close all drawers
-                    document
-                        .querySelectorAll(".events-drawer")
-                        .forEach((d) => d.classList.remove("open"));
-
-                    if (!isOpen) {
-                        drawer.classList.add("open");
-                        const res = await fetch(
-                            `/api/sessions/${session.id}/events`,
-                        );
-                        const events = await res.json();
-                        drawer.querySelector(".events-list").innerHTML = events
-                            .map(
-                                (ev) => `
-          <div class="event-row">
-            <div class="event-proc">${ev.process_name}</div>
-            <div class="event-title">${ev.window_title || "—"}</div>
-            <div class="event-dur">${formatDuration(ev.duration_seconds)}</div>
-          </div>`,
-                            )
-                            .join("");
-                    }
-                });
-
-                return card;
-            }
-
-            async function load() {
-                const res = await fetch("/api/sessions");
-                const sessions = await res.json();
-                const container = document.getElementById("sessions");
-
-                if (sessions.length === 0) {
-                    container.innerHTML = `<div class="empty">No sessions recorded yet.</div>`;
-                    return;
-                }
-
-                sessions.forEach((s) => container.appendChild(buildCard(s)));
-            }
-
-            load();
-        </script>
+        <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
     </body>
 </html>

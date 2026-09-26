@@ -1,0 +1,10 @@
+flask>=3.0
+pillow>=10.0
+psutil>=5.9
+pywin32>=306; sys_platform == "win32"
+
+# Only when ODINSKIN_DATABASE_URL points at PostgreSQL
+# psycopg2-binary>=2.9
+
+# Building the .exe
+# pyinstaller>=6.0
