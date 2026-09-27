@@ -17,7 +17,7 @@ import tkinter.font as tkfont
 import webbrowser
 from datetime import datetime
 
-from PIL import ImageTk
+from PIL import Image, ImageChops, ImageTk
 
 import appinfo
 import database
@@ -28,6 +28,8 @@ from tracker import Session, export_json, get_active_window
 POLL_MS = 1000
 RING_STEPS = 32  # frames per revolution
 RING_FRAME_MS = 125  # ~4 s per turn at 8 fps; cached, so it costs almost nothing
+SWEEP_SECONDS = 0.7  # stop: the gradient gives way to the session's app split
+FRAME_SECONDS = 1 / 60
 MAX_ROWS = 4
 
 # Logical layout (multiplied by the display scale)
@@ -85,6 +87,21 @@ def animations_enabled() -> bool:
         return bool(enabled.value)
     except Exception:
         return True
+
+
+_fine_timer = False
+
+
+def fine_timer(on: bool):
+    """1 ms scheduler ticks for smooth animation; released as soon as it ends."""
+    global _fine_timer
+    if on == _fine_timer:
+        return
+    try:
+        (ctypes.windll.winmm.timeBeginPeriod if on else ctypes.windll.winmm.timeEndPeriod)(1)
+        _fine_timer = on
+    except Exception:
+        pass
 
 
 def load_inter() -> bool:
@@ -182,6 +199,7 @@ class TrackerApp:
         self.poll_job = self.tick_job = self.ring_job = None
         self.ring_index = 0
         self.ring_frames = {}
+        self.sweeping = False
         self.photos = {}  # keeps PhotoImages alive
         self.avatar_cache = {}
         self.names = {}
@@ -190,6 +208,7 @@ class TrackerApp:
         self.icon_results = queue.Queue()
         self.save_results = queue.Queue()
         self.save_thread = None
+        self.pending_save = None
 
         self.db_error = None
         try:
@@ -360,22 +379,64 @@ class TrackerApp:
             self.c.itemconfigure(self.ring_item, image=self.photo("ring", img))
             return
 
-        frames, step_ms = 14, 28
+        # Draw the finished ring once; each frame only masks it and repaints one Tk image,
+        # about 4 ms a frame. Frames are timed by the clock, so a slow one never stretches
+        # the sweep.
+        track = self.flat(g.solid_ring(size, width, self.t["track"])).convert("RGBA")
+        finished = g.segmented_ring(size, width, segments)
+        # The live gradient stays put and the sweep replaces it as it passes, like a clock
+        # hand, rather than vanishing on click or fading through a muddy half-state
+        live = g.gradient_ring(size, width, self.ring_angle((self.ring_index - 1) % RING_STEPS))
+        screen = ImageTk.PhotoImage(self.flat(live))
+        self.photos["ring"] = screen
+        self.c.itemconfigure(self.ring_item, image=screen)
+        # Windows timers tick every 15.6 ms by default, which halves the frame rate;
+        # ask for 1 ms ticks only while the sweep runs
+        fine_timer(True)
+        self.sweeping = True
+        began = time.monotonic()
 
-        def frame(i):
-            sweep = 1 - (1 - (i + 1) / frames) ** 3  # ease-out cubic
-            img = g.segmented_ring(size, width, segments, self.t["track"], sweep=sweep)
-            self.c.itemconfigure(self.ring_item, image=self.photo("ring", img))
-            if i + 1 < frames and self.state in ("saving", "saved"):
-                self.ring_job = self.root.after(step_ms, frame, i + 1)
+        def frame():
+            t = min(1.0, (time.monotonic() - began) / SWEEP_SECONDS)
+            sweep = 1 - (1 - t) ** 3  # ease-out cubic
+            img = track.copy()
+            if t < 1:
+                pie = g.pie_mask(size, sweep)
+                img.alpha_composite(g.masked(live, ImageChops.invert(pie)))
+                img.alpha_composite(g.masked(finished, pie))
+            else:
+                img.alpha_composite(finished)
+            head = g.sweep_head(size, width, segments, sweep) if t < 1 else None
+            if head:
+                x, y, color = head
+                img.alpha_composite(g.disc(width, color), (round(x - width / 2), round(y - width / 2)))
+            screen.paste(img.convert("RGB"))
+            if t < 1 and self.state in ("saving", "saved"):
+                # Aim at the next 60 Hz deadline, whatever this frame cost
+                elapsed = time.monotonic() - began
+                wait = FRAME_SECONDS - elapsed % FRAME_SECONDS
+                self.ring_job = self.root.after(max(1, round(wait * 1000)), frame)
+            else:
+                fine_timer(False)
+                self.sweeping = False
 
-        frame(0)
+        frame()
+
+    def flat(self, img):
+        """Flatten onto the window's ground. Tk takes RGB about 30x faster than RGBA,
+        and the ring always sits on the plain ground anyway."""
+        base = Image.new("RGBA", img.size, self.t["ground"])
+        base.alpha_composite(img)
+        return base.convert("RGB")
+
+    @staticmethod
+    def ring_angle(index: int) -> float:
+        return 45 - index * 360 / RING_STEPS  # clockwise
 
     def ring_frame(self, index: int):
         if index not in self.ring_frames:
-            angle = 45 - index * 360 / RING_STEPS  # clockwise
-            img = g.gradient_ring(self.px(RING_SIZE), self.px(RING_WIDTH), angle)
-            self.ring_frames[index] = ImageTk.PhotoImage(img)
+            img = g.gradient_ring(self.px(RING_SIZE), self.px(RING_WIDTH), self.ring_angle(index))
+            self.ring_frames[index] = ImageTk.PhotoImage(self.flat(img))
         return self.ring_frames[index]
 
     def spin_ring(self):
@@ -413,6 +474,9 @@ class TrackerApp:
         threading.Thread(target=work, daemon=True).start()
 
     def drain_icons(self):
+        if self.sweeping:  # icons can wait 0.7 s; a mid-sweep redraw drops frames
+            self.root.after(100, self.drain_icons)
+            return
         changed = False
         while True:
             try:
@@ -613,6 +677,8 @@ class TrackerApp:
         self.session = Session()
         self.mono_start = time.monotonic()
         self.cancel("ring_job")
+        fine_timer(False)  # in case a sweep was cut short
+        self.sweeping = False
         self.set_button("stop", "Stop and save")
         self.set_caption("Recording")
         self.set_footnote("Closing the window saves the session too.")
@@ -652,8 +718,18 @@ class TrackerApp:
         self.set_caption("Saving…")
         self.set_button("busy", "Saving…")
         self.render_rows()
+        self.root.update_idletasks()  # paint all of that before the first frame
         self.show_segments(self.saved_apps, animate=True)
 
+        # Write once the ring has settled: a save thread competing for the GIL is what
+        # stuttered the start of the sweep. Closing the window in that gap saves at once.
+        self.pending_save = payload
+        self.root.after(int(SWEEP_SECONDS * 1000) + 20 if self.sweeping else 0, self.begin_save)
+
+    def begin_save(self):
+        payload, self.pending_save = self.pending_save, None
+        if payload is None:
+            return
         self.save_thread = threading.Thread(target=self.save_worker, args=(payload,), daemon=True)
         self.save_thread.start()
         self.root.after(100, self.check_saved)
@@ -680,6 +756,10 @@ class TrackerApp:
         self.save_results.put((path, error))
 
     def check_saved(self):
+        # Let the ring settle first; redrawing rows and the button mid-sweep drops frames
+        if self.sweeping:
+            self.root.after(50, self.check_saved)
+            return
         try:
             path, error = self.save_results.get_nowait()
         except queue.Empty:
@@ -728,6 +808,9 @@ class TrackerApp:
             self.cancel("poll_job", "tick_job", "ring_job")
             self.session.stop()
             self.save_worker(self.session.to_payload())
+        elif self.pending_save is not None:
+            payload, self.pending_save = self.pending_save, None
+            self.save_worker(payload)
         elif self.save_thread and self.save_thread.is_alive():
             self.save_thread.join(timeout=10)
         settings = load_settings()

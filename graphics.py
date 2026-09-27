@@ -9,7 +9,7 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 SUPERSAMPLE = 4
 
@@ -90,42 +90,80 @@ def gradient_ring(size: int, thickness: int, angle: float = 45.0) -> Image.Image
     return img
 
 
-def segmented_ring(size, thickness, segments, track, gap_px=3.0, sweep=1.0) -> Image.Image:
+def _arcs(size, thickness, segments, gap_px=3.0):
+    """[(start_deg, end_deg, color)] for each segment, clockwise from 12 o'clock (-90°).
+    A segment too short for its caps comes back as a zero-length arc at its middle (a dot)."""
+    radius = (size - thickness) / 2
+    gap_deg = math.degrees((gap_px + thickness) / radius) if len(segments) > 1 else 0
+    arcs, start = [], -90.0
+    for fraction, color in segments:
+        span = 360.0 * fraction
+        a0, a1 = start + gap_deg / 2, start + span - gap_deg / 2
+        if a1 <= a0:
+            a0 = a1 = start + span / 2
+        arcs.append((a0, a1, color))
+        start += span
+    return arcs
+
+
+def segmented_ring(size, thickness, segments, track=None, gap_px=3.0) -> Image.Image:
     """segments: [(fraction, color)] summing to <= 1, drawn clockwise from 12 o'clock
-    with round caps and small gaps. sweep < 1 reveals them partially (for animation)."""
+    with round caps and small gaps, over an optional track ring."""
     s = SUPERSAMPLE
     big = size * s
     img = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     t = thickness * s
-    box = (0, 0, big - 1, big - 1)  # Pillow draws a wide arc inward from the box edge
     radius = (big - t) / 2
     center = big / 2
 
-    d.ellipse((0, 0, big - 1, big - 1), fill=track)
-    d.ellipse((t, t, big - 1 - t, big - 1 - t), fill=(0, 0, 0, 0))
+    if track:
+        d.ellipse((0, 0, big - 1, big - 1), fill=track)
+        d.ellipse((t, t, big - 1 - t, big - 1 - t), fill=(0, 0, 0, 0))
 
-    gap_deg = math.degrees((gap_px * s + t) / radius) if len(segments) > 1 else 0
-    start = -90.0
-    limit = -90.0 + 360.0 * sweep
-    for fraction, color in segments:
-        span = 360.0 * fraction
-        a0 = start + gap_deg / 2
-        a1 = min(start + span - gap_deg / 2, limit)
-        start += span
-        if a1 <= a0:
-            # too small for caps: a dot keeps the app visible
-            if span > 0 and a0 < limit:
-                mid = math.radians(start - span / 2)
-                cx, cy = center + radius * math.cos(mid), center + radius * math.sin(mid)
-                d.ellipse((cx - t / 2, cy - t / 2, cx + t / 2, cy + t / 2), fill=color)
-            continue
-        d.arc(box, a0, a1, fill=color, width=round(t))
+    for a0, a1, color in _arcs(size, thickness, segments, gap_px):
+        if a1 > a0:
+            # Pillow draws a wide arc inward from the box edge
+            d.arc((0, 0, big - 1, big - 1), a0, a1, fill=color, width=round(t))
         for ang in (a0, a1):
             r = math.radians(ang)
             cx, cy = center + radius * math.cos(r), center + radius * math.sin(r)
             d.ellipse((cx - t / 2, cy - t / 2, cx + t / 2, cy + t / 2), fill=color)
     return _down(img, (size, size))
+
+
+# Sweep animation: the finished ring is drawn once; frames only mask it
+def pie_mask(size: int, sweep: float) -> Image.Image:
+    """L mask covering the first `sweep` (0..1) of the circle, clockwise from 12.
+    Drawn at native size: the sweep's round head cap sits over the edge."""
+    mask = Image.new("L", (size, size), 0)
+    if sweep > 0:
+        ImageDraw.Draw(mask).pieslice((-1, -1, size, size), -90, -90 + 360 * sweep, fill=255)
+    return mask
+
+
+def masked(img: Image.Image, mask: Image.Image) -> Image.Image:
+    out = img.copy()
+    out.putalpha(ImageChops.multiply(img.getchannel("A"), mask))
+    return out
+
+
+def sweep_head(size, thickness, segments, sweep, gap_px=3.0):
+    """(x, y, color) of the sweep's leading edge while it's inside a segment, else None."""
+    angle = -90.0 + 360.0 * sweep
+    for a0, a1, color in _arcs(size, thickness, segments, gap_px):
+        if a0 < angle < a1:
+            radius = (size - thickness) / 2
+            r = math.radians(angle)
+            return size / 2 + radius * math.cos(r), size / 2 + radius * math.sin(r), color
+    return None
+
+
+@lru_cache(maxsize=16)
+def disc(diameter: int, color: str) -> Image.Image:
+    img = Image.new("RGBA", (diameter, diameter), color)
+    img.putalpha(_disc_mask(diameter))
+    return img
 
 
 def rounded_rect(width, height, radius, fill, border=None) -> Image.Image:
