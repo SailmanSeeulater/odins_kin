@@ -549,6 +549,9 @@ class TrackerApp:
         text_x = SIDE + 14 + 40 + 12
         right_x = W - SIDE - 16
         dur_font, name_font, sub_font = self.font(15), self.font(15, "SemiBold"), self.font(13)
+        # Bars share one scale and stop short of the widest duration ("3h 13m" needs room)
+        widest = max(dur_font.measure(fmt_duration(secs)) for _, secs in shown)
+        bar_room = px(right_x - text_x - 16) - widest
 
         y = GROUP_Y
         for i, ((proc, secs), row_h) in enumerate(zip(shown, heights)):
@@ -563,9 +566,9 @@ class TrackerApp:
             name_w = px(right_x - text_x - 12) - dur_font.measure(duration)
             c.create_text(px(text_x), px(y + 21), anchor="w", tags=("rows",), font=name_font,
                           fill=t["ink"], text=self.elide(self.display_name(proc), name_font, name_w))
-            bar_w = max(4, round((right_x - text_x - 52) * secs / top))
+            bar_w = max(px(4), round(bar_room * secs / top))
             c.create_image(px(text_x), px(y + 38), anchor="w", tags=("rows",),
-                           image=self.photo(("bar", i), g.bar(px(bar_w), px(4),
+                           image=self.photo(("bar", i), g.bar(bar_w, px(4),
                                                               colors.get(proc, t["other"]))))
             if is_live and video:
                 c.create_text(px(text_x), px(y + 55), anchor="w", font=sub_font, fill=t["secondary"],
