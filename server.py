@@ -97,28 +97,23 @@ def api_events():
 
 @app.route("/api/youtube")
 def api_youtube():
-    """YouTube videos watched in ?from=&to=, one entry per video, most recent first."""
-    videos = {}
+    """Each stretch of YouTube watched in ?from=&to=. The page totals them per video
+    within whatever day or week it shows; totals across the whole fetch window would
+    leak other days' watch time into the one on screen."""
+    watched = []
     for ev in get_youtube_between(*requested_range()):
         title = redact_title(ev["process_name"], ev["window_title"] or "")
         if not title:
             continue
-        url = canonical_youtube_url(ev.get("url") or "")
-        key = url or f"title:{title.casefold()}"
-        video = videos.setdefault(key, {
+        watched.append({
             "title": video_name(title),
             "music": title.endswith("YouTube Music"),
-            "url": url,
-            "seconds": 0.0,
-            "first_watched": ev["start_time"],
-            "last_watched": ev["end_time"],
+            "url": canonical_youtube_url(ev.get("url") or ""),
+            "start_time": ev["start_time"],
+            "end_time": ev["end_time"],
             "session_id": ev["session_id"],
         })
-        video["seconds"] += ev["duration_seconds"] or 0
-        if ev["end_time"] > video["last_watched"]:
-            video["last_watched"] = ev["end_time"]
-            video["session_id"] = ev["session_id"]
-    return jsonify(sorted(videos.values(), key=lambda v: v["last_watched"], reverse=True))
+    return jsonify(watched)
 
 
 @app.route("/api/apps")

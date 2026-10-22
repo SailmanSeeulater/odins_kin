@@ -264,10 +264,10 @@ async function ensureEvents(force = false) {
     );
     state.events = rows.map((r) => ({ ...r, s: parseTime(r.start_time), e: parseTime(r.end_time) }));
     const range = `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
-    state.youtube = (await getJSON(`/api/youtube?${range}`)).map((v) => ({
-        ...v,
-        s: parseTime(v.first_watched),
-        e: parseTime(v.last_watched),
+    state.youtube = (await getJSON(`/api/youtube?${range}`)).map((w) => ({
+        ...w,
+        s: parseTime(w.start_time),
+        e: parseTime(w.end_time),
     }));
     state.eventsKey = key;
 }
@@ -413,9 +413,7 @@ function renderReport() {
     const visible = state.showAllApps ? viewRanked : viewRanked.slice(0, 5);
 
     const tray = state.view === "day" ? weekTray(weekBounds, days, today) : "";
-    const videos = state.youtube
-        .filter((v) => v.s < +info.to && v.e > +info.from)
-        .sort((a, b) => b.s - a.s);
+    const videos = videosBetween(+info.from, +info.to);
 
     reportEl.innerHTML = `
         ${tray}
@@ -495,6 +493,23 @@ function weekTray(weekBounds, days, today) {
 const playGlyph = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.2 5.6v8.8c0 .6.6.9 1.1.6l6.9-4.4c.5-.3.5-.9 0-1.2L8.3 5c-.5-.3-1.1 0-1.1.6Z"/></svg>`;
 const outGlyph = `<svg class="chevron" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 3h6v6M11 3 3.5 10.5"/></svg>`;
 
+/** One entry per video watched inside [from, to): time clipped to the range, labeled
+ *  and sorted by the latest time it started playing there (a history list). */
+function videosBetween(from, to) {
+    const byKey = new Map();
+    for (const w of state.youtube) {
+        const s = Math.max(w.s, from);
+        const e = Math.min(w.e, to);
+        if (!(e > s)) continue;
+        const key = w.url || `title:${w.title.toLowerCase()}`;
+        const v = byKey.get(key) || { title: w.title, url: w.url, music: w.music, seconds: 0, at: s };
+        v.seconds += (e - s) / 1000;
+        v.at = Math.max(v.at, s);
+        byKey.set(key, v);
+    }
+    return [...byKey.values()].sort((a, b) => b.at - a.at);
+}
+
 const videoName = (title) => (title || "").replace(/\s+-\s+YouTube(?: Music)?$/, "");
 
 function videoHref(v) {
@@ -502,7 +517,7 @@ function videoHref(v) {
 }
 
 function videoRow(v, dayView) {
-    const when = dayView ? fmt.time.format(v.s) : `${fmt.weekday.format(v.s)} ${fmt.time.format(v.s)}`;
+    const when = dayView ? fmt.time.format(v.at) : `${fmt.weekday.format(v.at)} ${fmt.time.format(v.at)}`;
     const where = v.url ? (v.music ? "YouTube Music" : "YouTube") : "Search on YouTube";
     return `
         <a class="row video" href="${esc(videoHref(v))}" target="_blank" rel="noopener noreferrer"
@@ -863,7 +878,7 @@ function sessionVideos(events) {
         byKey.set(key, v);
     }
     if (!byKey.size) return "";
-    const inOrder = [...byKey.values()].sort((a, b) => a.s - b.s);
+    const inOrder = [...byKey.values()].map((v) => ({ ...v, at: v.s })).sort((a, b) => a.at - b.at);
     return `<h2 class="section-title">YouTube</h2>
         <div class="group">${inOrder.map((v) => videoRow(v, true)).join("")}</div>`;
 }
